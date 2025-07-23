@@ -104,6 +104,13 @@
     <div class="container">
         <div class="filters">
             <div class="filter-group">
+                <label for="mesFilter">Mes:</label>
+                <select id="mesFilter">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
                 <label for="sedeFilter">Sede:</label>
                 <select id="sedeFilter"></select>
             </div>
@@ -159,17 +166,22 @@
             document.getElementById("titulo").textContent = filas[0][1];
             document.getElementById("subtitulo").textContent = filas[0][0];
 
-            clases = filas.slice(3).map(row => ({
-                fecha: row[0]?.split(" ")[0]?.split("/")?.reverse()?.join("-") || "",
-                docente: row[1] || "",
-                componente: row[2] || "",
-                sede: row[3] || "",
-                ciclo: row[4] || "",
-                corporal: row[6] || "",
-                tecnico: row[7] || "",
-                teorico: row[8] || "",
-                obras: row[9] || ""
-            }));
+            clases = filas.slice(3).map(row => {
+                const fecha = row[1]?.split(" ")[0]?.split("/").reverse().join("-") || "";
+                const mes = row[0]?.trim();
+                return {
+                    mes,
+                    fecha,
+                    docente: row[2] || "",
+                    componente: row[3] || "",
+                    sede: row[4] || "",
+                    ciclo: row[5] || "",
+                    corporal: row[6] || "",
+                    tecnico: row[7] || "",
+                    teorico: row[8] || "",
+                    obras: row[9] || ""
+                };
+            });
 
             aplicarFiltros();
         }
@@ -180,13 +192,17 @@
             select.innerHTML = '<option value="">Todos</option>';
             valores.forEach(valor => {
                 const option = document.createElement("option");
-                option.value = valor;
-                option.textContent = valor;
+                if (typeof valor === 'object') {
+                    option.value = valor.value;
+                    option.textContent = valor.label;
+                } else {
+                    option.value = valor;
+                    option.textContent = valor;
+                }
                 select.appendChild(option);
             });
 
-            // Reseleccionar si el valor anterior aún está disponible
-            if (valores.includes(valorAnterior)) {
+            if (valores.map(v => (typeof v === 'object' ? v.value : v)).includes(valorAnterior)) {
                 select.value = valorAnterior;
             }
         }
@@ -197,14 +213,21 @@
             const componente = document.getElementById("componenteFilter").value;
             const ciclo = document.getElementById("cicloFilter").value;
             const fecha = document.getElementById("fechaFilter").value;
+            const mesSeleccionado = document.getElementById("mesFilter").value;
 
             const clasesFiltradas = clases.filter(c =>
                 (!sede || c.sede === sede) &&
                 (!docente || c.docente === docente) &&
                 (!componente || c.componente === componente) &&
                 (!ciclo || c.ciclo === ciclo) &&
-                (!fecha || c.fecha === fecha)
+                (!fecha || c.fecha === fecha) &&
+                (!mesSeleccionado || c.mes === mesSeleccionado)
             );
+
+            const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                                  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const meses = [...new Set(clases.map(c => c.mes))];
+            actualizarSelect("mesFilter", meses.map(m => ({ value: m, label: nombresMeses[parseInt(m) - 1] || m })), mesSeleccionado);
 
             actualizarSelect("sedeFilter", [...new Set(clasesFiltradas.map(c => c.sede))], sede);
             actualizarSelect("docenteFilter", [...new Set(clasesFiltradas.map(c => c.docente))], docente);
@@ -218,6 +241,7 @@
             const componente = document.getElementById("componenteFilter").value;
             const ciclo = document.getElementById("cicloFilter").value;
             const fecha = document.getElementById("fechaFilter").value;
+            const mesSeleccionado = document.getElementById("mesFilter").value;
 
             const tableBody = document.getElementById("tableBody");
             tableBody.innerHTML = "";
@@ -227,7 +251,8 @@
                 (!docente || c.docente === docente) &&
                 (!componente || c.componente === componente) &&
                 (!ciclo || c.ciclo === ciclo) &&
-                (!fecha || c.fecha === fecha)
+                (!fecha || c.fecha === fecha) &&
+                (!mesSeleccionado || c.mes === mesSeleccionado)
             );
 
             clasesFiltradas.forEach(c => {
@@ -237,7 +262,7 @@
                 tableBody.appendChild(row);
             });
 
-            actualizarFiltros(); // Para mantener sincronizados los filtros
+            actualizarFiltros();
         }
 
         document.querySelectorAll("select, input").forEach(f => f.addEventListener("change", aplicarFiltros));
